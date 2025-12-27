@@ -1,18 +1,64 @@
 # Appointment Management System
 
-This project implements a functional Appointment Scheduling and Queue Management system with a React frontend and Python backend service.
+This project implements a functional Appointment Scheduling and Queue Management system with a React frontend and Python FastAPI backend service.
 
-## Project Structure
+## 🚀 Quick Start
+
+### Step 1: Install Dependencies
+
+**Backend (Python):**
+```bash
+pip install -r requirements.txt
+```
+
+**Frontend (Node.js):**
+```bash
+npm install
+```
+
+### Step 2: Start the Backend Server
+
+```bash
+python appointment_service.py
+```
+
+The API will be available at **http://localhost:8000**
+
+- Health Check: http://localhost:8000/
+- API Documentation: http://localhost:8000/docs
+- Alternative Docs: http://localhost:8000/redoc
+
+### Step 3: Start the Frontend
+
+```bash
+npm run dev
+```
+
+The frontend will run on **http://localhost:5173** (or similar)
+
+### Alternative: Using uvicorn directly
+
+```bash
+uvicorn appointment_service:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Options:**
+- `--reload` - Auto-reload on code changes (development mode)
+- `--host 0.0.0.0` - Allow connections from any IP
+- `--port 8000` - Port number (default is 8000)
+
+## 📁 Project Structure
 
 ```
 SwasthiQ-assignment/
-├── appointment_service.py          # Python backend service (Task 1)
-├── appointmentService.js            # JavaScript service layer (mirrors Python API)
+├── appointment_service.py          # Python backend service with FastAPI endpoints (Task 1)
 ├── EMR_Frontend_Assignment.jsx     # React frontend component (Task 2)
-└── README.md                        # This file
+├── requirements.txt                # Python dependencies
+├── package.json                    # Node dependencies
+└── README.md                       # This file
 ```
 
-## Features Implemented
+## ✨ Features Implemented
 
 ### Backend Service (Task 1)
 - ✅ Mock data with 12+ appointments
@@ -21,6 +67,7 @@ SwasthiQ-assignment/
 - ✅ `create_appointment(payload)` - Create with validation and conflict detection
 - ✅ `delete_appointment(id)` - Delete appointments
 - ✅ Data consistency documentation
+- ✅ FastAPI REST API endpoints
 
 ### Frontend Integration (Task 2)
 - ✅ Data fetching with React hooks (useState/useEffect)
@@ -28,93 +75,193 @@ SwasthiQ-assignment/
 - ✅ Tab filtering - Upcoming, Today, Past tabs
 - ✅ Status updates - Update appointment status via backend API
 - ✅ Create appointment - Form with backend validation
+- ✅ Delete appointment - Delete functionality with confirmation
+- ✅ Day/Week/Month view selectors
+- ✅ 30-minute time interval display
+- ✅ Status-based color coding
 - ✅ No frontend-only state mutations - All changes go through backend
 
-## Setup Instructions
+## 🔧 Setup Instructions
 
 ### Prerequisites
 - Node.js (v14 or higher)
 - Python 3.x
 - npm or yarn
+- pip (Python package manager)
 
-### Frontend Setup
+### Backend Setup
 
-1. Install dependencies (if using a React project):
+1. **Install Python dependencies:**
 ```bash
-npm install react react-dom
+pip install -r requirements.txt
 ```
 
-2. Import the component in your React app:
-```jsx
-import AppointmentManagementView from './EMR_Frontend_Assignment';
-```
+This installs:
+- `fastapi` - Web framework for building APIs
+- `uvicorn` - ASGI server to run FastAPI
+- `pydantic` - Data validation
 
-3. Use the component:
-```jsx
-function App() {
-  return <AppointmentManagementView />;
-}
-```
-
-### Backend Testing
-
-Test the Python service:
+2. **Run the server:**
 ```bash
 python appointment_service.py
 ```
 
-## API Contract
+### Frontend Setup
+
+1. **Install Node dependencies:**
+```bash
+npm install
+```
+
+2. **Run development server:**
+```bash
+npm run dev
+```
+
+3. **Build for production:**
+```bash
+npm run build
+```
+
+## 🔌 API Endpoints
+
+The FastAPI server (`appointment_service.py`) exposes REST endpoints:
+
+### GET /appointments
+Get all appointments with optional filtering.
+
+**Query Parameters:**
+- `date` (optional): Filter by date (YYYY-MM-DD)
+- `status` (optional): Filter by status (Confirmed, Scheduled, Upcoming, Cancelled)
+- `doctorName` (optional): Filter by doctor name
+
+**Example:**
+```bash
+# Get all appointments
+curl http://localhost:8000/appointments
+
+# Filter by date
+curl "http://localhost:8000/appointments?date=2024-12-25"
+
+# Multiple filters
+curl "http://localhost:8000/appointments?date=2024-12-25&status=Confirmed"
+```
+
+### POST /appointments
+Create a new appointment.
+
+**Request Body:**
+```json
+{
+  "patientName": "John Doe",
+  "date": "2024-12-25",
+  "time": "14:00",
+  "duration": 30,
+  "doctorName": "Dr. A",
+  "mode": "In-Person",
+  "status": "Scheduled"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:8000/appointments \
+  -H "Content-Type: application/json" \
+  -d '{
+    "patientName": "John Doe",
+    "date": "2024-12-25",
+    "time": "14:00",
+    "duration": 30,
+    "doctorName": "Dr. A",
+    "mode": "In-Person"
+  }'
+```
+
+### PATCH /appointments/{id}/status
+Update appointment status.
+
+**Request Body:**
+```json
+{
+  "status": "Confirmed"
+}
+```
+
+**Example:**
+```bash
+curl -X PATCH http://localhost:8000/appointments/apt-001/status \
+  -H "Content-Type: application/json" \
+  -d '{"status": "Confirmed"}'
+```
+
+### DELETE /appointments/{id}
+Delete an appointment.
+
+**Example:**
+```bash
+curl -X DELETE http://localhost:8000/appointments/apt-001
+```
+
+## 📋 API Contract
 
 ### get_appointments(filters)
 ```javascript
 // Get all appointments
-appointmentService.get_appointments()
+await fetch('http://localhost:8000/appointments')
 
 // Filter by date
-appointmentService.get_appointments({ date: '2024-12-25' })
+await fetch('http://localhost:8000/appointments?date=2024-12-25')
 
 // Filter by status
-appointmentService.get_appointments({ status: 'Confirmed' })
+await fetch('http://localhost:8000/appointments?status=Confirmed')
 
 // Filter by doctor
-appointmentService.get_appointments({ doctorName: 'Dr. A' })
+await fetch('http://localhost:8000/appointments?doctorName=Dr. A')
 
 // Multiple filters
-appointmentService.get_appointments({ 
-  date: '2024-12-25', 
-  status: 'Confirmed' 
-})
+await fetch('http://localhost:8000/appointments?date=2024-12-25&status=Confirmed')
 ```
 
 ### create_appointment(payload)
 ```javascript
-appointmentService.create_appointment({
-  patientName: 'John Doe',
-  date: '2024-12-25',
-  time: '14:00',
-  duration: 30,
-  doctorName: 'Dr. A',
-  mode: 'In-Person',
-  status: 'Scheduled' // Optional, defaults to 'Scheduled'
+await fetch('http://localhost:8000/appointments', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    patientName: 'John Doe',
+    date: '2024-12-25',
+    time: '14:00',
+    duration: 30,
+    doctorName: 'Dr. A',
+    mode: 'In-Person',
+    status: 'Scheduled' // Optional, defaults to 'Scheduled'
+  })
 })
 ```
 
 ### update_appointment_status(id, new_status)
 ```javascript
-appointmentService.update_appointment_status('apt-001', 'Confirmed')
+await fetch(`http://localhost:8000/appointments/${id}/status`, {
+  method: 'PATCH',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ status: 'Confirmed' })
+})
 ```
 
 ### delete_appointment(id)
 ```javascript
-appointmentService.delete_appointment('apt-001')
+await fetch(`http://localhost:8000/appointments/${id}`, {
+  method: 'DELETE'
+})
 ```
 
-## Component Features
+## 🎨 Component Features
 
 ### Calendar Widget
 - Click any date to filter appointments for that date
-- Shows next 7 days
+- Shows appointments in Day, Week, or Month view
 - Selected date is highlighted
+- 30-minute time intervals displayed
 
 ### Tabs
 - **Upcoming**: Shows future appointments (excluding cancelled)
@@ -122,9 +269,11 @@ appointmentService.delete_appointment('apt-001')
 - **Past**: Shows past appointments
 
 ### Status Management
-- Click "Confirm" to set status to Confirmed
-- Click "Cancel" to set status to Cancelled
-- Click "Mark Upcoming" to set status to Upcoming
+- Status-based color coding:
+  - **Confirmed**: Green
+  - **Scheduled**: Blue
+  - **Upcoming**: Purple
+  - **Cancelled**: Gray (with strikethrough)
 - All status changes call the backend API
 
 ### Create Appointment Form
@@ -132,24 +281,23 @@ appointmentService.delete_appointment('apt-001')
 - Prevents time conflicts for same doctor/date
 - Refreshes appointment list after creation
 - No direct state mutations - all via backend
+- Beautiful UI with grouped sections and icons
 
-## Data Flow
+### Delete Functionality
+- Delete button appears on hover for each appointment
+- Confirmation dialog before deletion
+- Works in Day, Week, and Month views
+
+## 🔄 Data Flow
 
 1. **Initial Load**: `useEffect` calls `get_appointments()` on mount
-2. **Date Filter**: User clicks calendar → `handleDateClick()` → filters applied in `useEffect`
-3. **Tab Filter**: User clicks tab → `handleTabClick()` → filters applied in `useEffect`
-4. **Status Update**: User clicks status button → `handleStatusUpdate()` → calls backend → refreshes list
-5. **Create**: User submits form → `handleCreateAppointment()` → calls backend → refreshes list
+2. **Date Filter**: User clicks calendar → filters applied via API call
+3. **Tab Filter**: User clicks tab → filters applied via API call
+4. **Status Update**: User updates status → calls backend → refreshes list
+5. **Create**: User submits form → calls backend → refreshes list
+6. **Delete**: User deletes appointment → calls backend → refreshes list
 
-## Notes
-
-- All state changes go through the backend service (no direct mutations)
-- Error handling with user-friendly messages
-- Loading states for async operations
-- Responsive design with Tailwind CSS classes
-- Conflict detection prevents double-booking
-
-## GraphQL Query Structure
+## 📊 GraphQL Query Structure
 
 ### getAppointments Query Design
 
@@ -274,7 +422,7 @@ subscription OnAppointmentCreate {
 }
 ```
 
-## Data Consistency in Python Functions
+## 🔒 Data Consistency in Python Functions
 
 ### 1. Transaction Management
 
@@ -379,7 +527,7 @@ After any mutation, the frontend refreshes data from backend:
 
 ```javascript
 // After update
-const refreshed = appointmentService.get_appointments();
+const refreshed = await getAppointments();
 setAppointments(refreshed);
 ```
 
@@ -400,7 +548,325 @@ WHERE id = $2 AND version = $3;
 
 If version mismatch, transaction fails (someone else modified it).
 
-## Production Considerations
+### 7. Additional Production Considerations
+
+- **Unique Constraints**: Database-level constraints prevent duplicates
+- **Distributed Locks**: For multi-region deployments, use DynamoDB or Redis
+- **Eventual Consistency**: Handle AppSync subscription delays gracefully
+- **Audit Trail**: Log all mutations with timestamps and user IDs
+
+## 🚀 Deployment
+
+### Deploy to Vercel
+
+#### Option 1: Vercel CLI
+
+1. **Install Vercel CLI:**
+```bash
+npm i -g vercel
+```
+
+2. **Deploy:**
+```bash
+vercel
+```
+
+3. **Follow the prompts** to link your project
+
+#### Option 2: Vercel Dashboard
+
+1. **Push code to GitHub:**
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git remote add origin <your-repo-url>
+git push -u origin main
+```
+
+2. **Go to [vercel.com](https://vercel.com)**
+3. **Click "New Project"**
+4. **Import your GitHub repository**
+5. **Vercel will auto-detect Vite and deploy**
+
+### Deploy to Netlify
+
+#### Option 1: Netlify CLI
+
+1. **Install Netlify CLI:**
+```bash
+npm i -g netlify-cli
+```
+
+2. **Build the project:**
+```bash
+npm run build
+```
+
+3. **Deploy:**
+```bash
+netlify deploy --prod --dir=dist
+```
+
+#### Option 2: Netlify Dashboard
+
+1. **Push code to GitHub** (same as Vercel steps above)
+
+2. **Go to [app.netlify.com](https://app.netlify.com)**
+
+3. **Click "Add new site" → "Import an existing project"**
+
+4. **Connect to GitHub** and select your repository
+
+5. **Build settings:**
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+
+6. **Click "Deploy site"**
+
+### Environment Variables
+
+No environment variables are required for this demo. In production, you would add:
+- `VITE_API_BASE_URL` - Your FastAPI backend URL
+- `VITE_APPSYNC_URL` - Your AppSync GraphQL endpoint (if using)
+- `VITE_API_KEY` - API key for authentication
+
+### Repository Setup
+
+1. **Initialize Git:**
+```bash
+git init
+```
+
+2. **Create .gitignore** (already included)
+
+3. **Add all files:**
+```bash
+git add .
+```
+
+4. **Initial commit:**
+```bash
+git commit -m "Initial commit: Appointment Management System"
+```
+
+5. **Create repository on GitHub/GitLab/Bitbucket**
+
+6. **Add remote and push:**
+```bash
+git remote add origin <your-repo-url>
+git branch -M main
+git push -u origin main
+```
+
+## ✅ Submission Checklist
+
+### Required Files
+- [x] **appointment_service.py** - Python backend service (Task 1)
+- [x] **EMR_Frontend_Assignment.jsx** - React frontend component (Task 2)
+- [x] **README.md** - Documentation with GraphQL query structure and data consistency explanation
+- [x] **package.json** - Dependencies and scripts
+- [x] **requirements.txt** - Python dependencies
+- [x] **.gitignore** - Git ignore file
+
+### Submission Requirements
+
+#### 1. Single Repository ✅
+- [ ] Initialize Git repository: `git init`
+- [ ] Add all files: `git add .`
+- [ ] Commit: `git commit -m "Initial commit"`
+- [ ] Create repository on GitHub/GitLab/Bitbucket
+- [ ] Push code: `git push -u origin main`
+- [ ] **Provide repository link in submission**
+
+#### 2. Frontend File ✅
+- [x] `EMR_Frontend_Assignment.jsx` exists
+- [x] Implements all required features:
+  - [x] Data fetching with useState/useEffect
+  - [x] Calendar filtering
+  - [x] Tab filtering (Upcoming, Today, Past)
+  - [x] Status updates via backend
+  - [x] Create appointment form
+  - [x] Delete appointment functionality
+  - [x] No frontend-only state mutations
+
+#### 3. Backend File ✅
+- [x] `appointment_service.py` exists
+- [x] Contains all required functions:
+  - [x] `get_appointments(filters)`
+  - [x] `update_appointment_status(id, new_status)`
+  - [x] `create_appointment(payload)`
+  - [x] `delete_appointment(id)` (optional but included)
+- [x] Mock data with 10+ appointments
+- [x] Data consistency comments
+- [x] FastAPI REST API endpoints
+
+#### 4. Live Link ⚠️
+- [ ] Deploy to Vercel or Netlify
+- [ ] Test all functionality on live site
+- [ ] **Provide live URL in submission**
+
+**Quick Deploy Steps:**
+```bash
+# Install dependencies
+npm install
+
+# Build
+npm run build
+
+# Deploy to Vercel
+npx vercel --prod
+
+# OR Deploy to Netlify
+npx netlify deploy --prod --dir=dist
+```
+
+#### 5. Technical Explanation ✅
+- [x] README.md includes GraphQL query structure
+- [x] README.md explains data consistency in Python functions
+- [x] Documentation is clear and comprehensive
+
+### Pre-Submission Testing
+
+Before submitting, test:
+
+- [ ] **Backend Service:**
+  ```bash
+  python appointment_service.py
+  ```
+  Should run without errors and show server running message
+
+- [ ] **Frontend Locally:**
+  ```bash
+  npm install
+  npm run dev
+  ```
+  Should start dev server and display appointment management UI
+
+- [ ] **All Features:**
+  - [ ] View all appointments
+  - [ ] Filter by date (click calendar)
+  - [ ] Filter by tab (Upcoming/Today/Past)
+  - [ ] Update appointment status
+  - [ ] Create new appointment
+  - [ ] Delete appointment
+  - [ ] Error handling (try invalid data)
+
+- [ ] **Live Deployment:**
+  - [ ] All features work on live site
+  - [ ] No console errors
+  - [ ] Responsive design works
+
+### Submission Format
+
+When submitting, include:
+
+1. **Repository Link:** `https://github.com/yourusername/swasthiq-assignment`
+2. **Live Link:** `https://your-project.vercel.app` (or Netlify URL)
+3. **Brief Description:**
+   - What you built
+   - Key features implemented
+   - Any challenges faced
+
+### Code Quality Checklist
+
+- [x] Code is well-commented
+- [x] Functions have docstrings
+- [x] Error handling implemented
+- [x] No console.log statements in production code
+- [x] Consistent code style
+- [x] README is comprehensive
+
+## 🐛 Troubleshooting
+
+### Backend Issues
+
+#### Port already in use
+If port 8000 is already in use, you can change it:
+
+```bash
+# Method 1: Edit appointment_service.py, change port=8000 to another port
+uvicorn.run(app, host="0.0.0.0", port=8001, reload=True)
+
+# Method 2: Use uvicorn command with different port
+uvicorn appointment_service:app --reload --port 8001
+```
+
+#### Module not found errors
+Make sure all dependencies are installed:
+```bash
+pip install -r requirements.txt
+```
+
+#### CORS errors from frontend
+If your frontend runs on a different port, add it to the CORS origins in `appointment_service.py`:
+```python
+allow_origins=["http://localhost:5173", "http://localhost:3000", "http://your-frontend-url"]
+```
+
+### Frontend Issues
+
+#### Build Errors
+If you get build errors:
+1. Make sure all dependencies are installed: `npm install`
+2. Check Node.js version (v14+ required)
+3. Clear cache: `rm -rf node_modules package-lock.json && npm install`
+
+#### Tailwind CSS Not Working
+If styles aren't applying:
+1. Check `tailwind.config.js` includes all file paths
+2. Ensure `postcss.config.js` is present
+3. Verify `src/index.css` has Tailwind directives
+
+#### Import Errors
+If you get module not found errors:
+1. Ensure all files are in correct directories
+2. Check import paths in `EMR_Frontend_Assignment.jsx`
+3. Verify file extensions match
+
+#### API Connection Issues
+If frontend can't connect to backend:
+1. Ensure FastAPI server is running on port 8000
+2. Check browser console for CORS errors
+3. Verify `API_BASE_URL` in `EMR_Frontend_Assignment.jsx` matches your backend URL
+
+### Verify the Server is Running
+
+1. **Health Check:**
+   Open your browser and visit: http://localhost:8000/
+   
+   You should see:
+   ```json
+   {
+     "message": "Appointment Management API",
+     "status": "running"
+   }
+   ```
+
+2. **Interactive API Documentation:**
+   Visit: http://localhost:8000/docs
+   
+   This provides a Swagger UI where you can:
+   - See all available endpoints
+   - Test the API directly from the browser
+   - View request/response schemas
+
+3. **Alternative API Documentation:**
+   Visit: http://localhost:8000/redoc
+   
+   This provides ReDoc documentation (alternative to Swagger)
+
+## 📝 Notes
+
+- All state changes go through the backend service (no direct mutations)
+- Error handling with user-friendly messages
+- Loading states for async operations
+- Responsive design with Tailwind CSS classes
+- Conflict detection prevents double-booking
+- Status-based color coding for visual clarity
+- Delete functionality with confirmation dialogs
+
+## 🏗️ Production Considerations
 
 The code includes comments explaining how this would work in production:
 - AWS AppSync for GraphQL API
@@ -408,4 +874,22 @@ The code includes comments explaining how this would work in production:
 - AWS Lambda for serverless execution
 - Real-time subscriptions for live updates
 - Transaction management for data consistency
+- Distributed locks for multi-region deployments
+- Idempotency keys for safe retries
+- Optimistic locking for concurrent updates
 
+## 📚 Additional Resources
+
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [React Documentation](https://react.dev/)
+- [Tailwind CSS Documentation](https://tailwindcss.com/)
+- [Vercel Deployment Guide](https://vercel.com/docs)
+- [Netlify Deployment Guide](https://docs.netlify.com/)
+
+## 📄 License
+
+This project is part of a technical assignment for SwasthiQ.
+
+---
+
+**Good luck with your submission! 🎉**

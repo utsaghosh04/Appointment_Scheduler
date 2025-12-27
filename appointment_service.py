@@ -3,6 +3,11 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Any
 from dataclasses import dataclass, asdict
 
+# FastAPI imports
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
 
 @dataclass
 class Appointment:
@@ -430,61 +435,145 @@ DATA CONSISTENCY IN PRODUCTION:
    - Implement polling fallback or optimistic UI updates
 """
 
+# Initialize FastAPI app
+app = FastAPI(
+    title="Appointment Management API",
+    description="REST API for managing appointments",
+    version="1.0.0"
+)
 
-# Example usage and testing
-if __name__ == "__main__":
-    service = AppointmentService()
+# Add CORS middleware to allow frontend requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://localhost:5174"],  # Vite default ports
+    allow_credentials=True, allow_methods=["*"], allow_headers=["*"], )
+
+# Initialize the appointment service instance
+appointment_service = AppointmentService()
+
+
+# Pydantic models for request/response
+class CreateAppointmentInput(BaseModel):
+    patientName: str
+    date: str
+    time: str
+    duration: int
+    doctorName: str
+    mode: str
+    status: Optional[str] = "Scheduled"
+
+
+class UpdateStatusInput(BaseModel):
+    status: str
+
+
+class AppointmentResponse(BaseModel):
+    id: str
+    patientName: str
+    date: str
+    time: str
+    duration: int
+    doctorName: str
+    status: str
+    mode: str
+
+
+# API Endpoints
+
+@app.get("/")
+async def root():
+    """Health check endpoint"""
+    return {"message": "Appointment Management API", "status": "running"}
+
+
+@app.get("/appointments", response_model=List[Dict[str, Any]])
+async def get_appointments(
+    date: Optional[str] = Query(None, description="Filter by date (YYYY-MM-DD)"),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    doctorName: Optional[str] = Query(None, description="Filter by doctor name")
+):
+    """
+    Get appointments with optional filtering
     
-    # Test get_appointments with filters
-    print("=== All Appointments ===")
-    all_appts = service.get_appointments()
-    print(f"Total: {len(all_appts)}")
+    Query Parameters:
+    - date: Filter by date (YYYY-MM-DD)
+    - status: Filter by status (Confirmed, Scheduled, Upcoming, Cancelled)
+    - doctorName: Filter by doctor name
+    """
+    filters = {}
+    if date:
+        filters["date"] = date
+    if status:
+        filters["status"] = status
+    if doctorName:
+        filters["doctorName"] = doctorName
     
-    print("\n=== Filtered by Status: Confirmed ===")
-    confirmed = service.get_appointments({"status": "Confirmed"})
-    print(f"Found: {len(confirmed)}")
-    
-    print("\n=== Filtered by Doctor ===")
-    dr_sarah = service.get_appointments({"doctorName": "Dr. A"})
-    print(f"Found: {len(dr_sarah)}")
-    
-    # Test create_appointment
-    print("\n=== Creating New Appointment ===")
     try:
-        new_apt = service.create_appointment({
-            "patientName": "Test Patient",
-            "date": "2024-12-25",
-            "time": "12:00",
-            "duration": 30,
-            "doctorName": "Dr. A",
-            "mode": "Virtual"
-        })
-        print(f"Created: {new_apt['id']} - {new_apt['patientName']}")
-    except ValueError as e:
-        print(f"Error: {e}")
+        appointments = appointment_service.get_appointments(filters)
+        return appointments
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/appointments", response_model=Dict[str, Any])
+async def create_appointment(appointment: CreateAppointmentInput):
+    """
+    Create a new appointment
     
-    # Test conflict detection
-    print("\n=== Testing Conflict Detection ===")
+    Validates required fields and checks for time conflicts
+    """
     try:
-        conflict_apt = service.create_appointment({
-            "patientName": "Conflict Test",
-            "date": (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d"),
-            "time": "09:00",  # Conflicts with apt-001
-            "duration": 30,
-            "doctorName": "Dr. A",
-            "mode": "In-Person"
-        })
+        # Use model_dump() for Pydantic v2, fallback to dict() for v1
+        payload = appointment.model_dump() if hasattr(appointment, 'model_dump') else appointment.dict()
+        new_appointment = appointment_service.create_appointment(payload)
+        return new_appointment
     except ValueError as e:
-        print(f"Conflict correctly detected: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.patch("/appointments/{appointment_id}/status", response_model=Dict[str, Any])
+async def update_appointment_status(
+    appointment_id: str,
+    status_update: UpdateStatusInput
+):
+    """
+    Update the status of an appointment
     
-    # Test update_appointment_status
-    print("\n=== Updating Appointment Status ===")
-    updated = service.update_appointment_status("apt-001", "Cancelled")
-    if updated:
-        print(f"Updated: {updated['id']} -> {updated['status']}")
+    Path Parameters:
+    - appointment_id: The ID of the appointment to update
     
-    # Test delete_appointment
-    print("\n=== Deleting Appointment ===")
-    deleted = service.delete_appointment("apt-002")
-    print(f"Deleted: {deleted}")
+    Request Body:
+    - status: New status value (Confirmed, Scheduled, Upcoming, Cancelled)
+    """
+    try:
+        updated = appointment_service.update_appointment_status(
+            appointment_id,
+            status_update.status
+        )
+        if updated is None:
+            raise HTTPException(status_code=404, detail="Appointment not found")
+        return updated
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/appointments/{appointment_id}")
+async def delete_appointment(appointment_id: str):
+    """
+    Delete an appointment by ID
+    
+    Path Parameters:
+    - appointment_id: The ID of the appointment to delete
+    """
+    try:
+        deleted = appointment_service.delete_appointment(appointment_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Appointment not found")
+        return {"success": True, "message": "Appointment deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
